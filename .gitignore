@@ -1,0 +1,24 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# React
+node_modules/
+build/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Generated audio
+generated_audio/
+english_output/
+tamil_output/
+hindi_output/
+telugu_output/
+kannada_output/
+malayalam_output/
