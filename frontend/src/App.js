@@ -74,21 +74,25 @@ useEffect(() => {
 
     try {
        setLoading(true);
-      const response = await axios.post("http://127.0.0.1:8000/generate", {
-        text: text,
-        language: language,
-        voice: voice,
-        speed: speed,
-        pitch: pitch
-      });
+      const response = await axios.post(
+  "http://127.0.0.1:8000/generate",
+  {
+    text: text,
+    language: language,
+    voice: voice,
+    speed: speed,
+    pitch: pitch
+  },
+  {
+    responseType: "blob" // important
+  }
+);
 
-      if (response.data.error) {
-        alert(response.data.error);
-        setLoading(false);
-        return;
-      }
+const audioBlob = new Blob([response.data], { type: "audio/wav" });
+const audioObjectUrl = URL.createObjectURL(audioBlob);
 
-      setAudioUrl(`http://127.0.0.1:8000/audio/${response.data.file}`);
+setAudioUrl(audioObjectUrl);
+
     } catch (error) {
       alert("Backend not reachable. Is FastAPI running?");
     }

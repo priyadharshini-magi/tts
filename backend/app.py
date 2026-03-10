@@ -1,6 +1,7 @@
 from fastapi import FastAPI
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse,StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
+from io import BytesIO
 from pydantic import BaseModel
 from typing import Optional
 import edge_tts
@@ -65,16 +66,12 @@ async def generate_audio(data: TTSRequest):
     if not voices:
         return {"error": "Unsupported language"}
 
-    # fallback to first voice
     selected_voice = data.voice if data.voice in voices else voices[0]
     rate = speed_to_rate(data.speed or 1.0)
     pitch = data.pitch or "+0Hz"
+
     if not pitch.startswith(("+", "-")):
         pitch = "+" + pitch
-
-
-    filename = f"{uuid.uuid4()}.wav"
-    filepath = os.path.join(OUTPUT_DIR, filename)
 
     try:
         communicate = edge_tts.Communicate(
@@ -83,15 +80,26 @@ async def generate_audio(data: TTSRequest):
             rate=rate,
             pitch=pitch
         )
-        await communicate.save(filepath)
+
+        audio_bytes = b""
+
+        async for chunk in communicate.stream():
+            if chunk["type"] == "audio":
+                audio_bytes += chunk["data"]
+
+        audio_buffer = BytesIO(audio_bytes)
+
+        return StreamingResponse(
+            audio_buffer,
+            media_type="audio/wav",
+            headers={"Content-Disposition": "inline; filename=tts.wav"}
+        )
 
     except Exception as e:
         print("TTS ERROR:", e)
         return {"error": str(e)}
-
-    return {"file": filename}
-
-
+    
+    
 @app.get("/audio/{filename}")
 def get_audio(filename: str):
     path = os.path.join(OUTPUT_DIR, filename)
